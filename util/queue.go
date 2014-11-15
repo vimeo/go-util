@@ -81,21 +81,26 @@ func NewLimitQueue(maxItems int, strategy int) *LimitQueue {
     return q
 }
 
-// Add an item to the end of the Queue
-func (this *LimitQueue) Add(v interface{}) (added bool) {
+// Add an item to the end of the Queue.
+// If the queue is full, use the limit strategy to determine whether to reject
+// the new item or to remove the oldest item to make room.
+// For LimitStrategyReject, returns whether the item was added.
+// For LimitStrategyCycle, returns whether the queue was NOT full.
+func (this *LimitQueue) Add(v interface{}) bool {
     this.mutex.Lock()
     defer this.mutex.Unlock()
     if this.list.Len() >= this.maxItems && this.strategy == LimitStrategyReject {
-        return
+        return false
     }
+    space := true
     for this.list.Len() >= this.maxItems {
+        space = false
         e := this.list.Front()
         if e == nil {
-            return
+            panic("empty queue. this is a bug.")
         }
         this.list.Remove(e)
     }
     this.list.PushBack(v)
-    added = true
-    return
+    return space
 }
