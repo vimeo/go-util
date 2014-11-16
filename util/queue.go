@@ -9,12 +9,14 @@ import (
 type Queue struct {
     list *list.List
     mutex sync.Mutex
+    cond *sync.Cond
 }
 
 // Create a new empty Queue
 func NewQueue() *Queue {
     q := new(Queue)
     q.list = list.New()
+    q.cond = sync.NewCond(&q.mutex)
     return q
 }
 
@@ -22,6 +24,7 @@ func NewQueue() *Queue {
 func (this *Queue) Add(v interface{}) {
     this.mutex.Lock()
     this.list.PushBack(v)
+    this.cond.Signal()
     this.mutex.Unlock()
 }
 
@@ -33,6 +36,19 @@ func (this *Queue) Remove() interface{} {
     if e == nil {
         return nil
     }
+    return this.list.Remove(e)
+}
+
+// Remove the first item in the Queue.
+// Blocks until an item is available.
+func (this *Queue) RemoveWait() interface{} {
+    this.mutex.Lock()
+    e := this.list.Front()
+    for e == nil {
+        this.cond.Wait()
+        e = this.list.Front()
+    }
+    defer this.mutex.Unlock()
     return this.list.Remove(e)
 }
 
@@ -77,6 +93,7 @@ func NewLimitQueue(maxItems int, strategy int) *LimitQueue {
     q.list     = list.New()
     q.maxItems = maxItems
     q.strategy = strategy
+    q.cond     = sync.NewCond(&q.mutex)
 
     return q
 }
@@ -102,5 +119,6 @@ func (this *LimitQueue) Add(v interface{}) bool {
         this.list.Remove(e)
     }
     this.list.PushBack(v)
+    this.cond.Signal()
     return space
 }
