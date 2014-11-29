@@ -39,6 +39,17 @@ func (this *Queue) Remove() interface{} {
     return this.list.Remove(e)
 }
 
+// Retrieve (but do not remove) the first item in the Queue
+func (this *Queue) Peek() interface{} {
+    this.mutex.Lock()
+    defer this.mutex.Unlock()
+    e := this.list.Front()
+    if e == nil {
+        return nil
+    }
+    return e.Value
+}
+
 // Remove the first item in the Queue.
 // Blocks until an item is available.
 func (this *Queue) RemoveWait() interface{} {
@@ -50,6 +61,19 @@ func (this *Queue) RemoveWait() interface{} {
     }
     defer this.mutex.Unlock()
     return this.list.Remove(e)
+}
+
+// Retrieve (but do not remove) the first item in the Queue.
+// Blocks until an item is available.
+func (this *Queue) PeekWait() interface{} {
+    this.mutex.Lock()
+    e := this.list.Front()
+    for e == nil {
+        this.cond.Wait()
+        e = this.list.Front()
+    }
+    defer this.mutex.Unlock()
+    return e.Value
 }
 
 // Get the number of items in the Queue
