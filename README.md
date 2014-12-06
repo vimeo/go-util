@@ -7,7 +7,9 @@ Installing:
 go get github.com/vimeo/go-util/util
 ```
 
-Using:
+API Documentation: [http://godoc.org/github.com/vimeo/go-util/util](http://godoc.org/github.com/vimeo/go-util/util)
+
+Example:
 ```go
 import "github.com/vimeo/go-util/util"
 
