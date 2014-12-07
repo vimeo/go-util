@@ -44,6 +44,8 @@ func (this *ConcurrencyPool) Release() {
 func (this *ConcurrencyPool) Close() {
     this.mutex.Lock()
     defer this.mutex.Unlock()
-    close(this.pool)
-    this.closed = true
+    if !this.closed {
+        close(this.pool)
+        this.closed = true
+    }
 }
