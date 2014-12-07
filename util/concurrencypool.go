@@ -5,7 +5,9 @@ import (
 )
 
 // Pool of concurrency slots. Can be used, for example, to limit asynchronous
-// processing of items in a queue.
+// processing of items in a queue. Warning: If you mistakenly do more Release()
+// calls than Get() calls, the extra Release() call will block, as well as a
+// Close() call.
 type ConcurrencyPool struct {
     pool chan int
     closed bool
