@@ -9,24 +9,35 @@ import (
 // relatively small.
 type PriorityQueue struct {
     queues []*Queue
+    waiting []int
     max int
+    waitLimit int
     top int
     total int
     mutex sync.Mutex
 }
 
 // Create a new empty PriorityQueue.
-func NewPriorityQueue(maxPriority int) *PriorityQueue {
-    if maxPriority < 0 {
-        maxPriority = 0
-    }
+// waitLimit gives other queues priority over the top queue if they have been
+// waiting for this many reads. A value of 0 allows unlimited reading from the
+// top priority queue before reading from lower priority queues.
+func NewPriorityQueueWithWaitLimit(maxPriority int, waitLimit int) *PriorityQueue {
+    maxPriority = MaxInt(0, maxPriority)
+    waitLimit = MaxInt(0, waitLimit)
     pq := new(PriorityQueue)
     pq.max = maxPriority
+    pq.waitLimit = waitLimit
     pq.queues = make([]*Queue, maxPriority + 1)
     for i := range pq.queues {
         pq.queues[i] = NewQueue()
     }
+    pq.waiting = make([]int, maxPriority + 1)
     return pq
+}
+
+// Create a new empty PriorityQueue.
+func NewPriorityQueue(maxPriority int) *PriorityQueue {
+    return NewPriorityQueueWithWaitLimit(maxPriority, 0)
 }
 
 // Add an item to the PriorityQueue with a specified priority.
@@ -41,6 +52,7 @@ func (this *PriorityQueue) Add(v interface{}, priority int) {
     this.total++
     if priority > this.top {
         this.top = priority
+        this.waiting[priority] = 0
     }
 }
 
@@ -55,6 +67,29 @@ func (this *PriorityQueue) updateRemoval() {
     }
 }
 
+func (this *PriorityQueue) nextQueue() int {
+    if this.top == 0 || this.waitLimit == 0 {
+        return this.top
+    }
+
+    next := this.top
+    for i := this.top; i >= 0; i-- {
+        if this.queues[i].Len() > 0 && this.waiting[i] >= this.waitLimit {
+            next = i
+            break
+        }
+    }
+
+    for i, q := range this.queues {
+        if i != next && q.Len() > 0 {
+            this.waiting[i]++
+        }
+    }
+    this.waiting[next] = 0
+
+    return next
+}
+
 // Remove the first highest priority item from the PriorityQueue.
 func (this *PriorityQueue) Remove() interface{} {
     this.mutex.Lock()
@@ -64,7 +99,8 @@ func (this *PriorityQueue) Remove() interface{} {
         return nil
     }
 
-    ret := this.queues[this.top].Remove()
+    next := this.nextQueue()
+    ret  := this.queues[next].Remove()
 
     this.updateRemoval()
 
@@ -81,7 +117,8 @@ func (this *PriorityQueue) RemoveWait() interface{} {
         return nil
     }
 
-    ret := this.queues[this.top].RemoveWait()
+    next := this.nextQueue()
+    ret  := this.queues[next].RemoveWait()
 
     this.updateRemoval()
 
@@ -101,6 +138,7 @@ func (this *PriorityQueue) RemoveP(priority int) interface{} {
         return nil
     }
 
+    this.waiting[priority] = 0
     ret := this.queues[priority].Remove()
 
     this.updateRemoval()
@@ -122,6 +160,7 @@ func (this *PriorityQueue) RemovePWait(priority int) interface{} {
         return nil
     }
 
+    this.waiting[priority] = 0
     ret := this.queues[priority].RemoveWait()
 
     this.updateRemoval()
@@ -200,8 +239,9 @@ func (this *PriorityQueue) Clear() {
     this.mutex.Lock()
     defer this.mutex.Unlock()
 
-    for _, q := range this.queues {
+    for i, q := range this.queues {
         q.Clear()
+        this.waiting[i] = 0
     }
     this.top   = 0
     this.total = 0

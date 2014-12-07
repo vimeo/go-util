@@ -170,15 +170,18 @@ func ExampleQueue() {
 }
 
 func ExamplePriorityQueue() {
-    pq := util.NewPriorityQueue(2)
+    pq := util.NewPriorityQueueWithWaitLimit(2, 1)
     pq.Add(5, 1)
     pq.Add(1, 0)
     pq.Add(2, 2)
     pq.Add(3, 1)
+    pq.Add(4, 2)
     fmt.Printf("len=%d\n", pq.Len())
     v := pq.PeekP(0).(int)
     fmt.Printf("%d\n", v)
     v = pq.RemoveP(0).(int)
+    fmt.Printf("%d\n", v)
+    v = pq.Remove().(int)
     fmt.Printf("%d\n", v)
     v = pq.Remove().(int)
     fmt.Printf("%d\n", v)
@@ -189,11 +192,12 @@ func ExamplePriorityQueue() {
     fmt.Printf("len=%d\n", pq.Len())
     pq.Clear()
     fmt.Printf("len=%d\n", pq.Len())
-    // Output: len=4
+    // Output: len=5
     // 1
     // 1
     // 2
     // 5
+    // 4
     // 3
     // len=1
     // len=0
