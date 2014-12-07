@@ -176,7 +176,6 @@ func ExamplePriorityQueue() {
     pq.Add(2, 2)
     pq.Add(3, 1)
     fmt.Printf("len=%d\n", pq.Len())
-    fmt.Printf("lens=%+v\n", pq.Lens())
     v := pq.PeekP(0).(int)
     fmt.Printf("%d\n", v)
     v = pq.RemoveP(0).(int)
@@ -191,7 +190,6 @@ func ExamplePriorityQueue() {
     pq.Clear()
     fmt.Printf("len=%d\n", pq.Len())
     // Output: len=4
-    // lens=map[0:1 1:2 2:1]
     // 1
     // 1
     // 2
