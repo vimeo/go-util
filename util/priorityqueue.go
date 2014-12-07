@@ -44,6 +44,17 @@ func (this *PriorityQueue) Add(v interface{}, priority int) {
     }
 }
 
+func (this *PriorityQueue) updateRemoval() {
+    this.total--
+    if this.total == 0 {
+        this.top = 0
+    } else {
+        for this.top > 0 && this.queues[this.top].Len() == 0 {
+            this.top--
+        }
+    }
+}
+
 // Remove the first highest priority item from the PriorityQueue.
 func (this *PriorityQueue) Remove() interface{} {
     this.mutex.Lock()
@@ -55,14 +66,24 @@ func (this *PriorityQueue) Remove() interface{} {
 
     ret := this.queues[this.top].Remove()
 
-    this.total--
+    this.updateRemoval()
+
+    return ret
+}
+
+// Remove the first highest priority item from the PriorityQueue.
+// Blocks until an item is available.
+func (this *PriorityQueue) RemoveWait() interface{} {
+    this.mutex.Lock()
+    defer this.mutex.Unlock()
+
     if this.total == 0 {
-        this.top = 0
-    } else {
-        for this.top > 0 && this.queues[this.top].Len() == 0 {
-            this.top--
-        }
+        return nil
     }
+
+    ret := this.queues[this.top].RemoveWait()
+
+    this.updateRemoval()
 
     return ret
 }
@@ -82,16 +103,28 @@ func (this *PriorityQueue) RemoveP(priority int) interface{} {
 
     ret := this.queues[priority].Remove()
 
-    if ret != nil {
-        this.total--
-        if this.total == 0 {
-            this.top = 0
-        } else {
-            for this.top > 0 && this.queues[this.top].Len() == 0 {
-                this.top--
-            }
-        }
+    this.updateRemoval()
+
+    return ret
+}
+
+// Remove the first item of a specific priority from the PriorityQueue.
+// Blocks until an item is available.
+func (this *PriorityQueue) RemovePWait(priority int) interface{} {
+    this.mutex.Lock()
+    defer this.mutex.Unlock()
+
+    if priority < 0 || priority > this.max {
+        return nil
     }
+
+    if this.total == 0 {
+        return nil
+    }
+
+    ret := this.queues[priority].RemoveWait()
+
+    this.updateRemoval()
 
     return ret
 }
@@ -104,6 +137,15 @@ func (this *PriorityQueue) Peek() interface{} {
     return this.queues[this.top].Peek()
 }
 
+// Retrieve (but do not remove) the first highest priority item from the PriorityQueue.
+// Blocks until an item is available.
+func (this *PriorityQueue) PeekWait() interface{} {
+    this.mutex.Lock()
+    defer this.mutex.Unlock()
+
+    return this.queues[this.top].PeekWait()
+}
+
 // Retrieve (but do not remove) the first item of a specific priority from the PriorityQueue.
 func (this *PriorityQueue) PeekP(priority int) interface{} {
     this.mutex.Lock()
@@ -114,6 +156,19 @@ func (this *PriorityQueue) PeekP(priority int) interface{} {
     }
 
     return this.queues[priority].Peek()
+}
+
+// Retrieve (but do not remove) the first item of a specific priority from the PriorityQueue.
+// Blocks until an item is available.
+func (this *PriorityQueue) PeekPWait(priority int) interface{} {
+    this.mutex.Lock()
+    defer this.mutex.Unlock()
+
+    if priority < 0 || priority > this.max {
+        return nil
+    }
+
+    return this.queues[priority].PeekWait()
 }
 
 // Get the number of items in the PriorityQueue.
