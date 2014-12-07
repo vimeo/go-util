@@ -1,0 +1,49 @@
+package util
+
+import (
+    "sync"
+)
+
+// Pool of concurrency slots. Can be used, for example, to limit asynchronous
+// processing of items in a queue.
+type ConcurrencyPool struct {
+    pool chan int
+    closed bool
+    mutex sync.Mutex
+}
+
+// Create a new ConcurrencyPool
+func NewConcurrencyPool(slots int) *ConcurrencyPool {
+    slots = MaxInt(1, slots)
+    cp := new(ConcurrencyPool)
+    cp.pool = make(chan int, slots)
+    for i := 0; i < slots; i++ {
+        cp.pool <- 0
+    }
+    return cp
+}
+
+// Get one slot from the ConcurrencyPool
+func (this *ConcurrencyPool) Get() {
+    <- this.pool
+}
+
+// Release one slot back to the ConcurrencyPool
+func (this *ConcurrencyPool) Release() {
+    this.mutex.Lock()
+    defer this.mutex.Unlock()
+    // avoid writing to a closed channel, which would panic
+    if !this.closed {
+        this.pool <- 0
+    }
+}
+
+// Close the ConcurrencyPool.
+// After closing, all Get() will unblock and all future Get() and Release()
+// will just return without blocking.
+func (this *ConcurrencyPool) Close() {
+    this.mutex.Lock()
+    defer this.mutex.Unlock()
+    close(this.pool)
+    this.closed = true
+}
