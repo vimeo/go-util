@@ -163,10 +163,21 @@ func ExampleQueue() {
     fmt.Printf("len=%d\n", q.Len())
     q.Clear()
     fmt.Printf("len=%d\n", q.Len())
+    c := time.After(100 * time.Millisecond)
+    d := make(chan int)
+    go func() {
+        v := q.RemoveWait()
+        fmt.Printf("%v\n", v)
+        d <- 0
+    }()
+    <- c
+    q.Close()
+    <- d
     // Output: len=3
     // 1
     // len=2
     // len=0
+    // <nil>
 }
 
 func ExamplePriorityQueue() {
@@ -192,6 +203,16 @@ func ExamplePriorityQueue() {
     fmt.Printf("len=%d\n", pq.Len())
     pq.Clear()
     fmt.Printf("len=%d\n", pq.Len())
+    c := time.After(100 * time.Millisecond)
+    d := make(chan int)
+    go func() {
+        v := pq.RemoveWait()
+        fmt.Printf("%v\n", v)
+        d <- 0
+    }()
+    <- c
+    pq.Close()
+    <- d
     // Output: len=5
     // 1
     // 1
@@ -201,4 +222,5 @@ func ExamplePriorityQueue() {
     // 3
     // len=1
     // len=0
+    // <nil>
 }

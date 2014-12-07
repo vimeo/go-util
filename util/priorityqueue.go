@@ -234,13 +234,26 @@ func (this *PriorityQueue) Lens() map[int]int {
     return ret
 }
 
-// Discard all items in the Queue
+// Discard all items in the PriorityQueue
 func (this *PriorityQueue) Clear() {
     this.mutex.Lock()
     defer this.mutex.Unlock()
 
     for i, q := range this.queues {
         q.Clear()
+        this.waiting[i] = 0
+    }
+    this.top   = 0
+    this.total = 0
+}
+
+// Close the PriorityQueue
+func (this *PriorityQueue) Close() {
+    this.mutex.Lock()
+    defer this.mutex.Unlock()
+
+    for i, q := range this.queues {
+        q.Close()
         this.waiting[i] = 0
     }
     this.top   = 0

@@ -10,6 +10,8 @@ type Queue struct {
     list *list.List
     mutex sync.Mutex
     cond *sync.Cond
+    closed bool
+    wg sync.WaitGroup
 }
 
 // Create a new empty Queue
@@ -23,6 +25,9 @@ func NewQueue() *Queue {
 // Add an item to the end of the Queue
 func (this *Queue) Add(v interface{}) {
     this.mutex.Lock()
+    if this.closed {
+        return
+    }
     this.list.PushBack(v)
     this.cond.Signal()
     this.mutex.Unlock()
@@ -54,9 +59,19 @@ func (this *Queue) Peek() interface{} {
 // Blocks until an item is available.
 func (this *Queue) RemoveWait() interface{} {
     this.mutex.Lock()
+    if this.closed {
+        this.mutex.Unlock()
+        return nil
+    }
+    this.wg.Add(1)
+    defer this.wg.Done()
     e := this.list.Front()
     for e == nil {
         this.cond.Wait()
+        if this.closed {
+            this.mutex.Unlock()
+            return nil
+        }
         e = this.list.Front()
     }
     defer this.mutex.Unlock()
@@ -67,9 +82,19 @@ func (this *Queue) RemoveWait() interface{} {
 // Blocks until an item is available.
 func (this *Queue) PeekWait() interface{} {
     this.mutex.Lock()
+    if this.closed {
+        this.mutex.Unlock()
+        return nil
+    }
+    this.wg.Add(1)
+    defer this.wg.Done()
     e := this.list.Front()
     for e == nil {
         this.cond.Wait()
+        if this.closed {
+            this.mutex.Unlock()
+            return nil
+        }
         e = this.list.Front()
     }
     defer this.mutex.Unlock()
@@ -88,6 +113,17 @@ func (this *Queue) Clear() {
     this.mutex.Lock()
     defer this.mutex.Unlock()
     this.list.Init()
+}
+
+// Close the Queue.
+// All blocked *Wait() functions will unblock and return nil.
+func (this *Queue) Close() {
+    this.mutex.Lock()
+    this.list.Init()
+    this.closed = true
+    this.cond.Broadcast()
+    this.mutex.Unlock()
+    this.wg.Wait()
 }
 
 const (
@@ -130,6 +166,10 @@ func NewLimitQueue(maxItems int, strategy int) *LimitQueue {
 func (this *LimitQueue) Add(v interface{}) bool {
     this.mutex.Lock()
     defer this.mutex.Unlock()
+    if this.closed {
+        // closed queue is considered full
+        return false
+    }
     if this.list.Len() >= this.maxItems && this.strategy == LimitStrategyReject {
         return false
     }
