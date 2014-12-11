@@ -186,3 +186,14 @@ func (this *LimitQueue) Add(v interface{}) bool {
     this.cond.Signal()
     return space
 }
+
+// Get the number of available spaces remaining.
+func (this *LimitQueue) Available() int {
+    this.mutex.Lock()
+    defer this.mutex.Unlock()
+
+    if this.closed {
+        return 0
+    }
+    return MaxInt(0, this.maxItems - this.list.Len())
+}
