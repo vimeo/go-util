@@ -33,6 +33,7 @@ type TimeoutReader struct {
     reader io.ReadCloser
     timeout time.Duration
     closeOnTimeout bool
+    maxReadSize int
 
     timedOut bool
     mutex sync.Mutex
@@ -44,6 +45,15 @@ func NewTimeoutReader(reader io.ReadCloser, timeout time.Duration, closeOnTimeou
         reader: reader,
         timeout: timeout,
         closeOnTimeout: closeOnTimeout,
+    }
+}
+
+func NewTimeoutReaderSize(reader io.ReadCloser, timeout time.Duration, closeOnTimeout bool, maxReadSize int) *TimeoutReader {
+    return &TimeoutReader{
+        reader: reader,
+        timeout: timeout,
+        closeOnTimeout: closeOnTimeout,
+        maxReadSize: maxReadSize,
     }
 }
 
@@ -80,15 +90,22 @@ func (this *TimeoutReader) Read(p []byte) (int, error) {
         return this.reader.Read(p)
     }
 
+    if this.maxReadSize > 0 && len(p) > this.maxReadSize {
+        p = p[:this.maxReadSize]
+    }
+
     done := make(chan *ReadResponse, 1)
     defer close(done)
     t := time.After(this.timeout)
 
     go func() {
-        n, err := this.reader.Read(p)
+        n, err := io.ReadFull(this.reader, p)
         this.mutex.Lock()
         defer this.mutex.Unlock()
         if !this.timedOut {
+            if err == io.ErrUnexpectedEOF {
+                err = nil
+            }
             done <- &ReadResponse{n, err}
         }
     }()
