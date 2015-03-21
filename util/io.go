@@ -81,6 +81,7 @@ func (this *TimeoutReader) Read(p []byte) (int, error) {
     }
 
     done := make(chan *ReadResponse, 1)
+    defer close(done)
     t := time.After(this.timeout)
 
     go func() {
@@ -96,11 +97,10 @@ func (this *TimeoutReader) Read(p []byte) (int, error) {
     case <- t:
         this.mutex.Lock()
         this.timedOut = true
+        this.mutex.Unlock()
         if this.closeOnTimeout {
             this.reader.Close()
         }
-        close(done)
-        this.mutex.Unlock()
         return 0, ErrReadTimeout
     case resp := <- done:
         return resp.n, resp.err
