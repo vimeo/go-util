@@ -4,7 +4,9 @@ import (
     "fmt"
     "io"
     "os"
+    "os/signal"
     "runtime"
+    "syscall"
     "time"
 )
 
@@ -20,4 +22,17 @@ func PanicBacktrace(w io.Writer) {
         fmt.Fprintf(w, "%s\n", string(b))
         os.Exit(1)
     }
+}
+
+// Alternative SIGQUIT handler that dumps stack trace to any io.Writer and exits.
+func SigQuitBacktrace(w io.Writer) {
+    qsc := make(chan os.Signal, 1)
+    signal.Notify(qsc, syscall.SIGQUIT)
+    <- qsc
+    signal.Stop(qsc)
+    fmt.Fprintf(w, "SIGQUIT\n\n")
+    buf := make([]byte, 65536)
+    buf = buf[:runtime.Stack(buf, true)]
+    fmt.Fprintln(w, string(buf))
+    os.Exit(1)
 }
