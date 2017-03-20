@@ -1,4 +1,4 @@
-##Simple Go Utilities##
+## Simple Go Utilities ##
 
 Small reusable Go functions.
 
