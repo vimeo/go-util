@@ -22,6 +22,7 @@ const emptyMD5 = "d41d8cd98f00b204e9800998ecf8427e"
 
 // raw data length must remain divisible by 4
 const testDataBase64 = "YYHWqJWrHbj+H9ei+AbLHO79sSrbMElQQ+iwZ0j+0JPrbRJnqaxoWeFXEqg2ONub8YjExM0R1L1pDr9Oj5YdHg=="
+
 var fSize int64
 var hSize int64
 var qSize int64

@@ -1,11 +1,11 @@
 package util
 
 import (
-    "fmt"
-    "os"
-    "path/filepath"
-    "sync"
-    "time"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
 )
 
 // Callback function called from within a Write() or Close() call after rotation.
@@ -17,15 +17,15 @@ type RotateCallbackFunc func(filename string, startTime time.Time, closing bool,
 
 // io.WriteCloser that writes to a rotating file.
 type RotatingFileWriter struct {
-    mutex sync.Mutex
-    filename string
-    byteCount int64
-    startTime time.Time
-    currentFile *os.File
-    rotateCallback RotateCallbackFunc
-    opaque interface{}
-    maxSize int64
-    maxDuration time.Duration
+	mutex          sync.Mutex
+	filename       string
+	byteCount      int64
+	startTime      time.Time
+	currentFile    *os.File
+	rotateCallback RotateCallbackFunc
+	opaque         interface{}
+	maxSize        int64
+	maxDuration    time.Duration
 }
 
 // Create a new RotatingFileWriter.
@@ -35,103 +35,103 @@ type RotatingFileWriter struct {
 // new data is written to it. After rotation, `callback` is called with the
 // given `opaque` parameter.
 func NewRotatingFileWriter(filename string, callback RotateCallbackFunc,
-                           maxSize int64, maxDuration time.Duration,
-                           opaque interface{}) (*RotatingFileWriter, error) {
-    rfw := new(RotatingFileWriter)
-    rfw.filename       = filename
-    rfw.rotateCallback = callback
-    rfw.opaque         = opaque
-    rfw.maxSize        = maxSize
-    rfw.maxDuration    = maxDuration
+	maxSize int64, maxDuration time.Duration,
+	opaque interface{}) (*RotatingFileWriter, error) {
+	rfw := new(RotatingFileWriter)
+	rfw.filename = filename
+	rfw.rotateCallback = callback
+	rfw.opaque = opaque
+	rfw.maxSize = maxSize
+	rfw.maxDuration = maxDuration
 
-    err := os.MkdirAll(filepath.Dir(filename), 0755)
-    if err != nil {
-        return nil, err
-    }
+	err := os.MkdirAll(filepath.Dir(filename), 0755)
+	if err != nil {
+		return nil, err
+	}
 
-    fi, err := os.Stat(filename)
-    if err == nil {
-        rfw.byteCount = fi.Size()
-    }
+	fi, err := os.Stat(filename)
+	if err == nil {
+		rfw.byteCount = fi.Size()
+	}
 
-    f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-    if err != nil {
-        return nil, err
-    }
-    rfw.currentFile = f
-    rfw.startTime   = time.Now()
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return nil, err
+	}
+	rfw.currentFile = f
+	rfw.startTime = time.Now()
 
-    return rfw, nil
+	return rfw, nil
 }
 
 func (this *RotatingFileWriter) rotate(closing bool) error {
-    now := time.Now()
+	now := time.Now()
 
-    err := this.currentFile.Close()
-    if err != nil {
-        return err
-    }
+	err := this.currentFile.Close()
+	if err != nil {
+		return err
+	}
 
-    newFilename := this.filename + fmt.Sprintf(".%d", now.UnixNano() / 1000000)
-    err = os.Rename(this.filename, newFilename)
-    if err != nil {
-        return err
-    }
+	newFilename := this.filename + fmt.Sprintf(".%d", now.UnixNano()/1000000)
+	err = os.Rename(this.filename, newFilename)
+	if err != nil {
+		return err
+	}
 
-    f, err := os.OpenFile(this.filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-    if err != nil {
-        return err
-    }
-    this.currentFile = f
-    startTime       := this.startTime
-    this.startTime   = now
-    this.byteCount   = 0
+	f, err := os.OpenFile(this.filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	this.currentFile = f
+	startTime := this.startTime
+	this.startTime = now
+	this.byteCount = 0
 
-    if this.rotateCallback != nil {
-        this.rotateCallback(newFilename, startTime, closing, this.opaque)
-    }
+	if this.rotateCallback != nil {
+		this.rotateCallback(newFilename, startTime, closing, this.opaque)
+	}
 
-    return nil
+	return nil
 }
 
 func (this *RotatingFileWriter) Write(p []byte) (int, error) {
-    var err error
+	var err error
 
-    this.mutex.Lock()
-    defer this.mutex.Unlock()
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
 
-    c := int64(len(p))
-    if c == 0 {
-        return 0, nil
-    }
+	c := int64(len(p))
+	if c == 0 {
+		return 0, nil
+	}
 
-    rotate := false
-    if this.maxSize > 0 && this.byteCount > this.maxSize - c {
-        rotate = true
-    }
-    now := time.Now()
-    if this.maxDuration > 0 && now.Sub(this.startTime) > this.maxDuration {
-        rotate = true
-    }
+	rotate := false
+	if this.maxSize > 0 && this.byteCount > this.maxSize-c {
+		rotate = true
+	}
+	now := time.Now()
+	if this.maxDuration > 0 && now.Sub(this.startTime) > this.maxDuration {
+		rotate = true
+	}
 
-    if rotate {
-        err = this.rotate(false)
-        if err != nil {
-            return 0, err
-        }
-    }
+	if rotate {
+		err = this.rotate(false)
+		if err != nil {
+			return 0, err
+		}
+	}
 
-    n, err := this.currentFile.Write(p)
-    this.byteCount += int64(n)
-    return n, err
+	n, err := this.currentFile.Write(p)
+	this.byteCount += int64(n)
+	return n, err
 }
 
 func (this *RotatingFileWriter) Close() error {
-    this.mutex.Lock()
-    defer this.mutex.Unlock()
-    err := this.rotate(true)
-    if err != nil {
-        return err
-    }
-    return this.currentFile.Close()
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+	err := this.rotate(true)
+	if err != nil {
+		return err
+	}
+	return this.currentFile.Close()
 }
