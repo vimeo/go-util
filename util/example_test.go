@@ -8,9 +8,8 @@ import (
     "os"
     "path"
     "time"
-)
-import (
-    "util"
+
+    "github.com/vimeo/go-util/util"
 )
 
 func ExampleBitMask() {
