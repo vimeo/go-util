@@ -1,4 +1,4 @@
-package util_test
+package util
 
 import (
 	"encoding/json"
@@ -8,12 +8,10 @@ import (
 	"os"
 	"path"
 	"time"
-
-	"github.com/vimeo/go-util/util"
 )
 
 func ExampleBitMask() {
-	var b util.BitMask
+	var b BitMask
 	b.Add("Justin")
 	b.Add("Naren|Mashiat|Derek|Dieter")
 	v, err := b.Parse("Justin|Derek|Naren")
@@ -30,14 +28,14 @@ func ExampleBitMask() {
 }
 
 func ExampleCopyFile() {
-	s := "This is a test of the util.CopyFile() function."
+	s := "This is a test of the CopyFile() function."
 	t1 := path.Join(path.Dir(os.Args[0]), "test1.txt")
 	t2 := path.Join(path.Dir(os.Args[0]), "test2.txt")
 	err := ioutil.WriteFile(t1, []byte(s), os.FileMode(0666))
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = util.CopyFile(t2, t1)
+	err = CopyFile(t2, t1)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,40 +52,40 @@ func ExampleCopyFile() {
 		log.Fatal(err)
 	}
 	fmt.Printf("%s\n", string(b))
-	// Output: This is a test of the util.CopyFile() function.
+	// Output: This is a test of the CopyFile() function.
 }
 
 func ExampleStopWatch() {
-	var s util.StopWatch
+	var s StopWatch
 	s.Start()
 	time.Sleep(time.Duration(1 * time.Second))
 	s.Stop()
 	d := s.GetElapsed()
-	fmt.Printf("%d\n", util.Lrint(d.Seconds()))
+	fmt.Printf("%d\n", Lrint(d.Seconds()))
 	s.Reset()
 	d = s.GetElapsed()
-	fmt.Printf("%d\n", util.Lrint(d.Seconds()))
+	fmt.Printf("%d\n", Lrint(d.Seconds()))
 	// Output: 1
 	// 0
 }
 
 func ExampleGaussian() {
-	fmt.Println(util.Gaussian(0.0, 1.0))
-	fmt.Println(util.Gaussian(1.0, 1.0))
-	fmt.Println(util.Gaussian(-1.0, 0.5))
+	fmt.Println(Gaussian(0.0, 1.0))
+	fmt.Println(Gaussian(1.0, 1.0))
+	fmt.Println(Gaussian(-1.0, 0.5))
 	// Output: 1
 	// 0.6065306597126334
 	// 0.1353352832366127
 }
 
 func ExampleLrint() {
-	fmt.Println(util.Lrint(5.01))
-	fmt.Println(util.Lrint(4.99))
-	fmt.Println(util.Lrint(4.50))
-	fmt.Println(util.Lrint(5.50))
-	fmt.Println(util.Lrint(5.499999999999999))
-	fmt.Println(util.Lrint(5.4999999999999999))
-	fmt.Println(util.Lrint(-1.4))
+	fmt.Println(Lrint(5.01))
+	fmt.Println(Lrint(4.99))
+	fmt.Println(Lrint(4.50))
+	fmt.Println(Lrint(5.50))
+	fmt.Println(Lrint(5.499999999999999))
+	fmt.Println(Lrint(5.4999999999999999))
+	fmt.Println(Lrint(-1.4))
 	// Output: 5
 	// 5
 	// 5
@@ -100,9 +98,9 @@ func ExampleLrint() {
 func ExampleClipDuration() {
 	min := time.Duration(5 * time.Second)
 	max := time.Duration(30 * time.Second)
-	fmt.Println(util.ClipDuration(3*time.Second, min, max))
-	fmt.Println(util.ClipDuration(10*time.Second, min, max))
-	fmt.Println(util.ClipDuration(50*time.Second, min, max))
+	fmt.Println(ClipDuration(3*time.Second, min, max))
+	fmt.Println(ClipDuration(10*time.Second, min, max))
+	fmt.Println(ClipDuration(50*time.Second, min, max))
 	// Output: 5s
 	// 10s
 	// 30s
@@ -111,34 +109,34 @@ func ExampleClipDuration() {
 func ExampleClipInt() {
 	min := 0
 	max := 10
-	fmt.Println(util.ClipInt(-1, min, max))
-	fmt.Println(util.ClipInt(5, min, max))
-	fmt.Println(util.ClipInt(15, min, max))
+	fmt.Println(ClipInt(-1, min, max))
+	fmt.Println(ClipInt(5, min, max))
+	fmt.Println(ClipInt(15, min, max))
 	// Output: 0
 	// 5
 	// 10
 }
 
 func ExampleMinInt() {
-	fmt.Println(util.MinInt(5, 6))
-	fmt.Println(util.MinInt(100, -1))
-	fmt.Println(util.MinInt(10, 10))
+	fmt.Println(MinInt(5, 6))
+	fmt.Println(MinInt(100, -1))
+	fmt.Println(MinInt(10, 10))
 	// Output: 5
 	// -1
 	// 10
 }
 
 func ExampleMaxInt() {
-	fmt.Println(util.MaxInt(5, 6))
-	fmt.Println(util.MaxInt(-1, -100))
-	fmt.Println(util.MaxInt(10, 10))
+	fmt.Println(MaxInt(5, 6))
+	fmt.Println(MaxInt(-1, -100))
+	fmt.Println(MaxInt(10, 10))
 	// Output: 6
 	// -1
 	// 10
 }
 
 func ExampleTwoDimSplit() {
-	opts := util.TwoDimSplit("FirstName=Justin:LastName=Ruggles:EyeColor=Blue", ":", "=")
+	opts := TwoDimSplit("FirstName=Justin:LastName=Ruggles:EyeColor=Blue", ":", "=")
 	b, err := json.MarshalIndent(opts, "", "    ")
 	if err != nil {
 		log.Fatal(err)
@@ -152,7 +150,7 @@ func ExampleTwoDimSplit() {
 }
 
 func ExampleQueue() {
-	q := util.NewQueue()
+	q := NewQueue()
 	q.Add(1)
 	q.Add(2)
 	q.Add(3)
@@ -180,7 +178,7 @@ func ExampleQueue() {
 }
 
 func ExamplePriorityQueue() {
-	pq := util.NewPriorityQueueWithWaitLimit(2, 1)
+	pq := NewPriorityQueueWithWaitLimit(2, 1)
 	pq.Add(5, 1)
 	pq.Add(1, 0)
 	pq.Add(2, 2)
